@@ -1,0 +1,240 @@
+;;additional attriutes for the classes
+turtles-own
+[
+  goal
+  hunger
+]
+patches-own
+[
+  pheromone
+  food_reserve
+]
+
+;;global variables
+globals [food_sources the_nest food_reserve_sum]
+
+;;observer functions
+to setup
+  clear-all
+  reset-ticks
+  set food_sources (list)
+  set the_nest (list)
+  set food_reserve_sum 0
+  create_patches_and_nests_and_food_sources
+  create_turtles
+end
+to go
+  if ticks mod 500 = 0
+  [
+    ask patch random-xcor random-ycor
+    [
+      add_food_source
+    ]
+  ]
+  move_ants
+  decay_pheromone
+  manual_food_source_placement ;;incase we want to add more food sources
+  tick
+end
+
+;;main logic functions
+to move_ants
+  ask turtles
+  [
+    ifelse patch-here = goal
+    [
+      ifelse pcolor = red or pcolor = yellow ;reached foodsource
+      [
+        ifelse pcolor = yellow
+        [
+          set hunger hunger + 2 * HUNGER_INCREASE_PER_FOOD
+        ]
+        [
+          set hunger hunger + HUNGER_INCREASE_PER_FOOD
+          if hunger > 200
+          [
+            ask patch-here
+            [
+              sprout 1
+              [
+                set goal one-of food_sources
+                set size 2
+                set color blue
+                set shape AGENT_TYPE
+                set hunger INITIAL_HUNGER
+              ]
+            ]
+            set hunger hunger - 50
+          ]
+          ask patch-here
+          [
+            set food_reserve food_reserve - 1
+            set food_reserve_sum food_reserve_sum - 1
+            if food_reserve <= 0
+            [
+              remove_food_source
+            ]
+          ]
+        ]
+        ifelse coin_flip?
+        [
+          ifelse not empty? food_sources
+          [
+            set goal one-of food_sources
+          ]
+          [
+            set goal one-of patches
+          ]
+        ]
+        [
+          set goal one-of the_nest
+        ]
+      ]
+      [
+        ifelse not empty? food_sources
+        [
+          set goal one-of food_sources
+        ]
+        [
+          set goal one-of patches
+        ]
+      ]
+    ]
+    [
+      walk-towards-goal
+    ]
+  ]
+end
+to decay_pheromone
+  ask patches with [pcolor != red and pcolor != yellow]
+  [
+    if pheromone > 1 and not any? turtles-here
+    [
+      set pheromone pheromone * (100 - PHEROMONE_DECAY_PERCENT) / 100
+    ]
+    ifelse pcolor = green
+    [
+      if pheromone < 1
+      [
+        set pheromone 1
+      ]
+    ]
+    [
+      if pheromone < 1
+      [
+        set pheromone 1
+        set pcolor green
+      ]
+    ]
+  ]
+end
+to walk-towards-goal
+  let prev_distance distance goal
+  let best_route find_best_route_to goal prev_distance
+  if pcolor = green
+  [
+    ask patch-here
+    [
+      makes_trail
+    ]
+  ]
+  ifelse best_route = nobody
+  [face goal]
+  [face best_route]
+  fd 1
+  set hunger hunger - 1
+  if hunger <= 0
+  [
+    die
+  ]
+end
+
+;;helper functions
+to create_patches_and_nests_and_food_sources
+  ask patches
+  [
+    set pcolor green
+    set pheromone 1
+    set food_reserve 0
+  ]
+  ask patch random-xcor random-ycor [become_nest]
+  ask patch random-xcor random-ycor [add_food_source]
+  ask patch random-xcor random-ycor [add_food_source]
+  ask patch random-xcor random-ycor [add_food_source]
+  ask patch random-xcor random-ycor [add_food_source]
+  ask patch random-xcor random-ycor [add_food_source]
+end
+to create_turtles
+  ifelse PEN_DOWN
+  [
+    create-turtles NUMBER_OF_AGENTS
+    [
+      setxy random-xcor random-ycor
+      pen-down
+    ]
+  ]
+  [
+    create-turtles NUMBER_OF_AGENTS
+    [
+      setxy random-xcor random-ycor
+    ]
+  ]
+  ask turtles
+  [
+    set goal one-of patches
+    set size 2
+    set color blue
+    set shape AGENT_TYPE
+    set hunger INITIAL_HUNGER
+  ]
+end
+to-report coin_flip?
+  report random 2 = 0
+end
+to-report find_best_route_to [turtle_goal current-distance]
+  let most_traversed_patches (patches in-radius VISION_DISTANCE with
+    [
+      pcolor = gray and distance turtle_goal < current-distance - 1
+    ]
+  )
+  report min-one-of most_traversed_patches [distance self]
+end
+to manual_food_source_placement
+  if mouse-down?
+  [
+    ask patch (floor mouse-xcor) (floor mouse-ycor)
+    [
+      ifelse pcolor = red
+      [
+        remove_food_source
+      ]
+      [
+        add_food_source
+      ]
+    ]
+  ]
+end
+to remove_food_source
+  set pcolor green
+  set pheromone 1
+  set food_sources (remove self food_sources)
+end
+to add_food_source
+  set pcolor red
+  set food_sources (fput self food_sources)
+  set food_reserve (random 500)
+  set food_reserve_sum food_reserve_sum + food_reserve
+  set pheromone 1
+end
+to become_nest
+  set pcolor yellow
+  set the_nest (fput self the_nest)
+  set pheromone 1
+end
+to makes_trail
+  set pheromone pheromone + PHEROMONE_PER_STEP
+  if pheromone > MINIMUM_PHEROMONE_TO_MAKE_TRAIL
+  [
+    set pcolor gray
+  ]
+end
