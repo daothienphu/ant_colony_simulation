@@ -43,9 +43,9 @@ to move_ants
   [
     ifelse patch-here = goal
     [
-      ifelse pcolor = red or pcolor = yellow ;reached foodsource
+      ifelse pcolor = map_color FOOD_COLOR or pcolor = map_color NEST_COLOR ;reached foodsource
       [
-        ifelse pcolor = yellow
+        ifelse pcolor = map_color NEST_COLOR
         [
           set hunger hunger + 2 * HUNGER_INCREASE_PER_FOOD
         ]
@@ -59,7 +59,7 @@ to move_ants
               [
                 set goal one-of food_sources
                 set size 2
-                set color blue
+                set color map_color AGENT_COLOR
                 set shape AGENT_TYPE
                 set hunger INITIAL_HUNGER
               ]
@@ -106,13 +106,13 @@ to move_ants
   ]
 end
 to decay_pheromone
-  ask patches with [pcolor != red and pcolor != yellow]
+  ask patches with [pcolor != map_color FOOD_COLOR and pcolor != map_color NEST_COLOR]
   [
     if pheromone > 1 and not any? turtles-here
     [
       set pheromone pheromone * (100 - PHEROMONE_DECAY_PERCENT) / 100
     ]
-    ifelse pcolor = green
+    ifelse pcolor = map_color GROUND_COLOR
     [
       if pheromone < 1
       [
@@ -123,7 +123,7 @@ to decay_pheromone
       if pheromone < 1
       [
         set pheromone 1
-        set pcolor green
+        set pcolor map_color GROUND_COLOR
       ]
     ]
   ]
@@ -131,7 +131,7 @@ end
 to walk-towards-goal
   let prev_distance distance goal
   let best_route find_best_route_to goal prev_distance
-  if pcolor = green
+  if pcolor = map_color GROUND_COLOR
   [
     ask patch-here
     [
@@ -153,7 +153,7 @@ end
 to create_patches_and_nests_and_food_sources
   ask patches
   [
-    set pcolor green
+    set pcolor map_color GROUND_COLOR
     set pheromone 1
     set food_reserve 0
   ]
@@ -183,10 +183,28 @@ to create_turtles
   [
     set goal one-of patches
     set size 2
-    set color blue
+    set color map_color AGENT_COLOR
     set shape AGENT_TYPE
     set hunger INITIAL_HUNGER
   ]
+end
+to-report map_color [color_str]
+  if color_str = "black" [report 0]
+  if color_str = "white" [report 9.9]
+  if color_str = "gray" [report 5]
+  if color_str = "red" [report 15]
+  if color_str = "orange" [report 25]
+  if color_str = "brown" [report 35]
+  if color_str = "yellow" [report 45]
+  if color_str = "green" [report 55]
+  if color_str = "lime" [report 65]
+  if color_str = "turqoise" [report 75]
+  if color_str = "cyan" [report 85]
+  if color_str = "sky" [report 95]
+  if color_str = "blue" [report 105]
+  if color_str = "violet" [report 115]
+  if color_str = "magenta" [report 125]
+  if color_str = "pink" [report 135]
 end
 to-report coin_flip?
   report random 2 = 0
@@ -194,7 +212,7 @@ end
 to-report find_best_route_to [turtle_goal current-distance]
   let most_traversed_patches (patches in-radius VISION_DISTANCE with
     [
-      pcolor = gray and distance turtle_goal < current-distance - 1
+      pcolor = map_color TRAIL_COLOR and distance turtle_goal < current-distance - 1
     ]
   )
   report min-one-of most_traversed_patches [distance self]
@@ -204,7 +222,7 @@ to manual_food_source_placement
   [
     ask patch (floor mouse-xcor) (floor mouse-ycor)
     [
-      ifelse pcolor = red
+      ifelse pcolor = map_color FOOD_COLOR
       [
         remove_food_source
       ]
@@ -215,19 +233,19 @@ to manual_food_source_placement
   ]
 end
 to remove_food_source
-  set pcolor green
+  set pcolor map_color GROUND_COLOR
   set pheromone 1
   set food_sources (remove self food_sources)
 end
 to add_food_source
-  set pcolor red
+  set pcolor map_color FOOD_COLOR
   set food_sources (fput self food_sources)
   set food_reserve (random 500)
   set food_reserve_sum food_reserve_sum + food_reserve
   set pheromone 1
 end
 to become_nest
-  set pcolor yellow
+  set pcolor map_color NEST_COLOR
   set the_nest (fput self the_nest)
   set pheromone 1
 end
@@ -235,14 +253,14 @@ to makes_trail
   set pheromone pheromone + PHEROMONE_PER_STEP
   if pheromone > MINIMUM_PHEROMONE_TO_MAKE_TRAIL
   [
-    set pcolor gray
+    set pcolor map_color TRAIL_COLOR
   ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-339
+388
 10
-956
+1005
 628
 -1
 -1
@@ -267,10 +285,10 @@ ticks
 30.0
 
 BUTTON
-39
-35
-103
-68
+15
+10
+74
+43
 Setup
 setup
 NIL
@@ -284,10 +302,10 @@ NIL
 1
 
 BUTTON
-111
-35
-188
-68
+84
+10
+152
+43
 Go once
 go
 NIL
@@ -301,10 +319,10 @@ NIL
 1
 
 BUTTON
-196
-35
-316
-68
+165
+10
+249
+43
 Go forever
 go
 T
@@ -318,10 +336,10 @@ NIL
 1
 
 SLIDER
-39
-86
-188
-119
+14
+82
+249
+115
 NUMBER_OF_AGENTS
 NUMBER_OF_AGENTS
 1
@@ -333,20 +351,20 @@ NIL
 HORIZONTAL
 
 CHOOSER
-195
-86
-317
-131
+259
+10
+381
+55
 AGENT_TYPE
 AGENT_TYPE
 "default" "airplane" "arrow" "box" "bug" "butterfly" "car" "circle" "circle 2" "cow" "cylinder" "dot" "face happy" "face neutral" "face sad" "fish" "flag" "flower" "house" "leaf" "line" "line half" "pentagon" "person" "plant" "sheep" "square" "square 2" "star" "target" "tree" "triangle" "triangle 2" "truck" "turtle" "wheel" "wolf" "x"
 4
 
 SLIDER
-38
-312
-257
-345
+13
+308
+249
+341
 PHEROMONE_DECAY_PERCENT
 PHEROMONE_DECAY_PERCENT
 0
@@ -358,10 +376,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-39
-131
-163
-164
+14
+127
+249
+160
 VISION_DISTANCE
 VISION_DISTANCE
 0
@@ -373,10 +391,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-39
-175
-194
-208
+14
+171
+249
+204
 PHEROMONE_PER_STEP
 PHEROMONE_PER_STEP
 0
@@ -388,10 +406,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-38
-362
-314
-395
+13
+352
+248
+385
 MINIMUM_PHEROMONE_TO_MAKE_TRAIL
 MINIMUM_PHEROMONE_TO_MAKE_TRAIL
 1
@@ -403,10 +421,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-212
-143
-317
-176
+259
+67
+380
+100
 PEN_DOWN
 PEN_DOWN
 1
@@ -414,12 +432,12 @@ PEN_DOWN
 -1000
 
 PLOT
-40
-407
-316
-619
-NIL
-time
+13
+397
+378
+629
+count per tick
+ticks
 count
 0.0
 10.0
@@ -433,10 +451,10 @@ PENS
 "food" 1.0 0 -2674135 true "" "plot food_reserve_sum"
 
 SLIDER
-37
-266
-239
-299
+13
+263
+249
+296
 HUNGER_INCREASE_PER_FOOD
 HUNGER_INCREASE_PER_FOOD
 0
@@ -448,10 +466,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-37
-220
-209
-253
+13
+217
+249
+250
 INITIAL_HUNGER
 INITIAL_HUNGER
 0
@@ -461,6 +479,56 @@ INITIAL_HUNGER
 1
 NIL
 HORIZONTAL
+
+CHOOSER
+259
+168
+379
+213
+AGENT_COLOR
+AGENT_COLOR
+"black" "gray" "white" "red" "orange" "brown" "yellow" "green" "lime" "turqoise" "cyan" "sky" "blue" "violet" "magenta" "pink"
+2
+
+CHOOSER
+259
+112
+379
+157
+GROUND_COLOR
+GROUND_COLOR
+"black" "gray" "white" "red" "orange" "brown" "yellow" "green" "lime" "turqoise" "cyan" "sky" "blue" "violet" "magenta" "pink"
+0
+
+CHOOSER
+259
+225
+378
+270
+TRAIL_COLOR
+TRAIL_COLOR
+"black" "gray" "white" "red" "orange" "brown" "yellow" "green" "lime" "turqoise" "cyan" "sky" "blue" "violet" "magenta" "pink"
+1
+
+CHOOSER
+259
+282
+378
+327
+FOOD_COLOR
+FOOD_COLOR
+"black" "gray" "white" "red" "orange" "brown" "yellow" "green" "lime" "turqoise" "cyan" "sky" "blue" "violet" "magenta" "pink"
+4
+
+CHOOSER
+259
+339
+378
+384
+NEST_COLOR
+NEST_COLOR
+"black" "gray" "white" "red" "orange" "brown" "yellow" "green" "lime" "turqoise" "cyan" "sky" "blue" "violet" "magenta" "pink"
+0
 
 @#$#@#$#@
 ## WHAT IS IT?
